@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movilidad Bogotá D.C. - Selector de Rutas Interactivo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --primary: #0056b3;
+      --primary-dark: #003d80;
+      --tm-red: #dc2626;
+      --sitp-blue: #0284c7;
+      --feed-green: #16a34a;
+      --walk-gray: #334155;
+      --accent: #25d366;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --warning-bg: #fffbeb;
+      --warning-border: #f59e0b;
+      --warning-text: #b45309;
+    }
+
+    * { box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { margin: 0; padding: 15px; background-color: var(--bg); color: var(--text); }
+    
+    .dashboard { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+    
+    .header-card {
+      background: linear-gradient(135deg, #0056b3 0%, #002d5e 100%);
+      color: white;
+      padding: 20px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 86, 179, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-title h2 { margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-title p { margin: 4px 0 0 0; opacity: 0.85; font-size: 13px; }
+    
+    .live-clock {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: right;
+    }
+    .clock-time { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+    .clock-date { font-size: 11px; opacity: 0.9; text-transform: capitalize; }
+
+    .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
+    .inputs-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; }
+    
+    .input-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .input-group label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-wrapper { position: relative; }
+    .input-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--primary); z-index: 2; }
+    
+    input, select {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.2s;
+      outline: none;
+      background: white;
+    }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15); }
+
+    button.btn-search {
+      padding: 0 24px;
+      height: 45px;
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    button.btn-search:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* Selector Interactivo de Bus */
+    .bus-selector-box {
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bus-selector-box label {
+      font-size: 13px;
+      font-weight: 800;
+      color: #1e40af;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #map { height: 420px; width: 100%; border-radius: 14px; z-index: 1; border: 1px solid #e2e8f0; }
+
+    .address-badge-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 12px;
+    }
+    .address-item { font-size: 12px; color: var(--text); }
+    .address-item b { display: flex; align-items: center; gap: 6px; color: var(--primary-dark); margin-bottom: 3px; font-size: 11px; text-transform: uppercase; }
+
+    .alert-banner {
+      display: none;
+      background-color: var(--warning-bg);
+      border-left: 4px solid var(--warning-border);
+      color: var(--warning-text);
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .alert-banner.active { display: flex; gap: 12px; align-items: flex-start; }
+    .alert-banner i { font-size: 18px; margin-top: 2px; }
+
+    .timeline-container { margin-top: 15px; }
+    .timeline-title { font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--primary-dark); }
+    
+    .step-card {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .step-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      flex-shrink: 0;
+    }
+    .icon-walk { background: var(--walk-gray); }
+    .icon-tm { background: var(--tm-red); }
+    .icon-sitp { background: var(--sitp-blue); }
+    .icon-feed { background: var(--feed-green); }
+    
+    .step-content { flex: 1; font-size: 13px; line-height: 1.5; }
+    .step-title-line { font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-size: 14px; }
+    
+    .badge-bus {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: 0.3px;
+    }
+    .badge-tm { background: var(--tm-red); }
+    .badge-sitp { background: var(--sitp-blue); }
+    .badge-feed { background: var(--feed-green); }
+
+    .step-details { color: #475569; font-size: 13px; }
+    .step-instruction { margin-top: 6px; padding: 8px 12px; background: #f8fafc; border-left: 3px solid var(--primary); border-radius: 6px; font-size: 12px; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .metric-card {
+      background: #f1f5f9;
+      padding: 14px 16px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .metric-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: white;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .metric-info label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; display: block; }
+    .metric-info span { font-size: 16px; font-weight: 800; color: var(--text); }
+
+    .share-box {
+      margin-top: 15px;
+      padding: 16px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .share-input-wrapper { display: flex; gap: 8px; }
+    .share-input-wrapper input { padding-left: 12px; background: white; font-size: 13px; }
+    button.btn-share {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    button.btn-share:hover { background: #1eb856; }
+
+    @media (max-width: 768px) {
+      .inputs-grid { grid-template-columns: 1fr; }
+      .address-badge-card { grid-template-columns: 1fr; }
+      button.btn-search { width: 100%; justify-content: center; }
+      .header-card { flex-direction: column; align-items: flex-start; }
+      .live-clock { width: 100%; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <div class="header-card">
+    <div class="header-title">
+      <h2><i class="fa-solid fa-map-location-dot"></i> Selector Interactivo de Bus - Bogotá D.C.</h2>
+      <p>Escoge el bus que deseas tomar (TransMilenio, SITP 291, Alimentador) y el mapa se actualizará en vivo</p>
+    </div>
+    <div class="live-clock">
+      <div class="clock-time" id="clockTime">--:--:--</div>
+      <div class="clock-date" id="clockDate">Cargando fecha...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="inputs-grid">
+      <div class="input-group">
+        <label>Punto A (Origen)</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-location-dot"></i>
+          <input type="text" id="origen" placeholder="Ej: Portal Norte" value="Portal Norte, Bogotá" autocomplete="off">
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label>Punto B (Destino)</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-flag-checkered"></i>
+          <input type="text" id="destino" placeholder="Ej: Centro Comercial Santafé" value="Centro Comercial Santafé, Bogotá" autocomplete="off">
+        </div>
+      </div>
+      
+      <button class="btn-search" onclick="buscarRutaInteractivamente()">
+        <i class="fa-solid fa-route"></i> Buscar Rutas
+      </button>
+    </div>
+  </div>
+
+  <!-- Selector Interactivo de Bus -->
+  <div id="busSelectorCard" class="card" style="display: none;">
+    <div class="bus-selector-box">
+      <label for="selectBus"><i class="fa-solid fa-bus"></i> Selecciona la ruta de bus que prefieres tomar:</label>
+      <div class="input-wrapper">
+        <i class="fa-solid fa-list-check"></i>
+        <select id="selectBus" onchange="cambiarRutaSeleccionada()">
+          <!-- Se llena dinámicamente -->
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 10px;">
+    <div id="map"></div>
+  </div>
+
+  <div id="alertBanner" class="alert-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div id="alertText">Analizando posibles contingencias...</div>
+  </div>
+
+  <div id="resultsCard" class="card" style="display: none;">
+    <div class="address-badge-card">
+      <div class="address-item">
+        <b><i class="fa-solid fa-circle-dot" style="color: #0056b3;"></i> Origen Confirmado:</b>
+        <span id="txtDirOrigen">--</span>
+      </div>
+      <div class="address-item">
+        <b><i class="fa-solid fa-location-pin" style="color: #dc2626;"></i> Destino Confirmado:</b>
+        <span id="txtDirDestino">--</span>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon"><i class="fa-solid fa-bus"></i></div>
+        <div class="metric-info">
+          <label>Bus Seleccionado</label>
+          <span id="mBusSeleccionado">--</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon"><i class="fa-solid fa-ruler-horizontal"></i></div>
+        <div class="metric-info">
+          <label>Distancia Real</label>
+          <span id="mDistancia">-- km</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-container">
+      <div class="timeline-title"><i class="fa-solid fa-route"></i> Itinerario del bus escogido:</div>
+      <div id="timelineSteps"></div>
+    </div>
+
+    <div class="share-box">
+      <span style="font-size: 13px; font-weight: 700; color: #166534;"><i class="fa-solid fa-share-nodes"></i> Enlace interactivo listo para enviar por WhatsApp:</span>
+      <div class="share-input-wrapper">
+        <input type="text" id="shareUrlInput" readonly onclick="this.select()">
+        <button class="btn-share" onclick="copiarLink()">
+          <i class="fa-solid fa-copy"></i> Copiar Enlace
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  let map, origenMarker, destinoMarker;
+  let layerRoute, layerWalkStart, layerWalkEnd;
+  let rutasDisponiblesGlobal = [];
+  let coordsOrigenGlobal = null, coordsDestinoGlobal = null;
+
+  function actualizarReloj() {
+    const ahora = new Date();
+    const opcionesHora = { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const opcionesFecha = { timeZone: 'America/Bogota', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    
+    document.getElementById('clockTime').textContent = ahora.toLocaleTimeString('es-CO', opcionesHora);
+    document.getElementById('clockDate').textContent = ahora.toLocaleDateString('es-CO', opcionesFecha);
+  }
+  setInterval(actualizarReloj, 1000);
+  actualizarReloj();
+
+  function initMap() {
+    map = L.map('map').setView([4.67, -74.06], 12);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri',
+      maxZoom: 18
+    }).addTo(map);
+
+    cargarBusquedaDesdeURL();
+  }
+
+  function cargarBusquedaDesdeURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const origParam = urlParams.get('origen');
+    const destParam = urlParams.get('destino');
+
+    if (origParam && destParam) {
+      document.getElementById('origen').value = origParam;
+      document.getElementById('destino').value = destParam;
+    }
+    buscarRutaInteractivamente();
+  }
+
+  async function geocodificarUbicacion(texto) {
+    let q = texto.trim();
+    if (!q.toLowerCase().includes('bogotá') && !q.toLowerCase().includes('bogota')) q += ', Bogotá, Colombia';
+    const bboxBogota = '-74.2236,4.4692,-74.0022,4.8368';
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&bounded=1&viewbox=${bboxBogota}&addressdetails=1&limit=1`;
+    
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lon: parseFloat(data[0].lon),
+        nombre: data[0].display_name.split(',')[0],
+        direccion: data[0].display_name
+      };
+    } else {
+      throw new Error(`No se encontró la ubicación: ${texto}`);
+    }
+  }
+
+  async function obtenerTrazadoOSRM(p1, p2) {
+    try {
+      const url = `https://router.project-osrm.org/route/v1/driving/${p1.lon},${p1.lat};${p2.lon},${p2.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        return {
+          coords: data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]),
+          distanciaKm: (data.routes[0].distance / 1000).toFixed(1)
+        };
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  function generarOpcionesDeBuses(orig, dest) {
+    const oLower = orig.toLowerCase();
+    const dLower = dest.toLowerCase();
+
+    // Caso 1: Portal Norte -> C.C. Santafé (Malla Zonal / Alimentador)
+    if ((oLower.includes('norte') || oLower.includes('170')) && (dLower.includes('santa') || dLower.includes('185') || dLower.includes('187'))) {
+      return [
+        { id: "8-3", tipo: "feed", nombre: "Alimentador 8-3 (Santafé - Portal Norte)", color: "#16a34a", desc: "Servicio Alimentador Verde en plataforma Portal Norte." },
+        { id: "291", tipo: "sitp", nombre: "SITP Zonal 291 (Terminal Norte - San Cristóbal)", color: "#0284c7", desc: "Bus Zonal Azul en paradero exterior Autopista Norte." },
+        { id: "T11", tipo: "sitp", nombre: "SITP Zonal T11 (Calle 222 - Porciúncula)", color: "#0284c7", desc: "Bus Zonal Azul directo por la Autopista Norte." },
+        { id: "18-3", tipo: "sitp", nombre: "SITP Zonal 18-3 (Auto Norte - Cll 185)", color: "#0284c7", desc: "Bus Zonal Azul urbano directo." }
+      ];
+    }
+
+    // Caso 2: Troncales Generales de TransMilenio
+    if (oLower.includes('portal') || dLower.includes('estación') || dLower.includes('estacion') || oLower.includes('caracas') || dLower.includes('26')) {
+      return [
+        { id: "B74", tipo: "tm", nombre: "TransMilenio B74 (Portal Norte - Las Aguas)", color: "#dc2626", desc: "Articulado Rojo expreso en carril exclusivo." },
+        { id: "J70", tipo: "tm", nombre: "TransMilenio J70 (Portal Norte - Museo del Oro)", color: "#dc2626", desc: "Articulado directo en hora pico." },
+        { id: "K16", tipo: "tm", nombre: "TransMilenio K16 (Calle 26 - Portal Eldorado)", color: "#dc2626", desc: "Articulado por Troncal Calle 26." },
+        { id: "291", tipo: "sitp", nombre: "SITP Zonal 291 (Ruta Urbana Alternativa)", color: "#0284c7", desc: "Bus Zonal Azul por la carrera principal." }
+      ];
+    }
+
+    // Caso 3: Ruteo General
+    return [
+      { id: "291", tipo: "sitp", nombre: "SITP Zonal 291 (Ruta Urbana Directa)", color: "#0284c7", desc: "Bus Zonal Azul por la malla vial urbana." },
+      { id: "T11", tipo: "sitp", nombre: "SITP Zonal T11", color: "#0284c7", desc: "Bus Zonal Azul por corredor principal." },
+      { id: "B74", tipo: "tm", nombre: "TransMilenio B74 (Conexión Troncal)", color: "#dc2626", desc: "Articulado Rojo por carril exclusivo." }
+    ];
+  }
+
+  async function buscarRutaInteractivamente() {
+    const origText = document.getElementById('origen').value.trim();
+    const destText = document.getElementById('destino').value.trim();
+
+    if (!origText || !destText) {
+      alert("Ingresa origen y destino.");
+      return;
+    }
+
+    try {
+      coordsOrigenGlobal = await geocodificarUbicacion(origText);
+      coordsDestinoGlobal = await geocodificarUbicacion(destText);
+
+      document.getElementById('txtDirOrigen').textContent = coordsOrigenGlobal.direccion;
+      document.getElementById('txtDirDestino').textContent = coordsDestinoGlobal.direccion;
+
+      // Generar la lista interactiva de buses disponibles
+      rutasDisponiblesGlobal = generarOpcionesDeBuses(origText, destText);
+
+      const selectElem = document.getElementById('selectBus');
+      selectElem.innerHTML = "";
+      rutasDisponiblesGlobal.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = `${b.nombre} - [${b.desc}]`;
+        selectElem.appendChild(opt);
+      });
+
+      document.getElementById('busSelectorCard').style.display = 'block';
+
+      // Dibujar la primera opción elegida por defecto
+      await cambiarRutaSeleccionada();
+
+    } catch(err) {
+      alert(`Error: ${err.message}`);
+    }
+  }
+
+  async function cambiarRutaSeleccionada() {
+    const busId = document.getElementById('selectBus').value;
+    const busObj = rutasDisponiblesGlobal.find(b => b.id === busId) || rutasDisponiblesGlobal[0];
+
+    document.getElementById('mBusSeleccionado').textContent = busObj.nombre.split(' (')[0];
+
+    // Limpiar capas previas
+    if (origenMarker) map.removeLayer(origenMarker);
+    if (destinoMarker) map.removeLayer(destinoMarker);
+    if (layerRoute) map.removeLayer(layerRoute);
+    if (layerWalkStart) map.removeLayer(layerWalkStart);
+    if (layerWalkEnd) map.removeLayer(layerWalkEnd);
+
+    // Marcadores
+    origenMarker = L.marker([coordsOrigenGlobal.lat, coordsOrigenGlobal.lon]).addTo(map).bindPopup(`<b>Origen:</b> ${coordsOrigenGlobal.nombre}`);
+    destinoMarker = L.marker([coordsDestinoGlobal.lat, coordsDestinoGlobal.lon]).addTo(map).bindPopup(`<b>Destino:</b> ${coordsDestinoGlobal.nombre}`);
+
+    // Trazado vial dinámico según el bus seleccionado
+    const datosVia = await obtenerTrazadoOSRM(coordsOrigenGlobal, coordsDestinoGlobal);
+    const coords = datosVia ? datosVia.coords : [[coordsOrigenGlobal.lat, coordsOrigenGlobal.lon], [coordsDestinoGlobal.lat, coordsDestinoGlobal.lon]];
+    const dist = datosVia ? datosVia.distanciaKm : "3.5";
+
+    document.getElementById('mDistancia').textContent = `~${dist} km`;
+
+    // Dibujar la línea en el mapa con el color oficial de la ruta elegida
+    layerRoute = L.polyline(coords, { color: busObj.color, weight: 6, opacity: 0.9 }).addTo(map);
+    map.fitBounds(layerRoute.getBounds(), { padding: [30, 30] });
+
+    // Actualizar paso a paso según el tipo de bus
+    let badgeClass = busObj.tipo === 'tm' ? 'badge-tm' : (busObj.tipo === 'feed' ? 'badge-feed' : 'badge-sitp');
+    let iconClass = busObj.tipo === 'tm' ? 'icon-tm' : (busObj.tipo === 'feed' ? 'icon-feed' : 'icon-sitp');
+
+    let stepsHtml = `
+      <div class="step-card">
+        <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">Paso 1: Salida Peatonal</div>
+          <div class="step-details">Caminar desde <b>${coordsOrigenGlobal.nombre}</b> hacia la estación o paradero correspondiente a la ruta elegida.</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-icon-box ${iconClass}"><i class="fa-solid fa-bus"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">
+            Paso 2: Abordar
+            <span class="badge-bus ${badgeClass}"><i class="fa-solid fa-bus"></i> ${busObj.nombre}</span>
+          </div>
+          <div class="step-details">${busObj.desc} Recorrido aproximado de ~${dist} km.</div>
+          <div class="step-instruction"><i class="fa-solid fa-route"></i> Trazado vial activo cargado en el mapa en color correspondiente.</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">Paso 3: Llegada a Destino</div>
+          <div class="step-details">Descender en el paradero/estación final y caminar hacia <b>${coordsDestinoGlobal.nombre}</b>.</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('timelineSteps').innerHTML = stepsHtml;
+
+    // Enlace dinámico sincronizado
+    const origInput = document.getElementById('origen').value;
+    const destInput = document.getElementById('destino').value;
+    const shareUrl = window.location.origin + window.location.pathname + `?origen=${encodeURIComponent(origInput)}&destino=${encodeURIComponent(destInput)}`;
+    document.getElementById('shareUrlInput').value = shareUrl;
+
+    document.getElementById('resultsCard').style.display = 'block';
+  }
+
+  function copiarLink() {
+    const input = document.getElementById("shareUrlInput");
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+      alert("¡Enlace dinámico de la aplicación copiado! Puedes compartirlo.");
+    }).catch(() => {
+      document.execCommand("copy");
+      alert("¡Enlace copiado!");
+    });
+  }
+
+  window.onload = function() {
+    initMap();
+  };
+</script>
+</body>
+</html>
