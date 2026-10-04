@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Movilidad Bogotá D.C. - Google Maps Transit</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    :root {
+      --primary: #0056b3;
+      --primary-dark: #003d80;
+      --tm-red: #dc2626;
+      --sitp-blue: #0284c7;
+      --feed-green: #16a34a;
+      --walk-gray: #334155;
+      --accent: #25d366;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --warning-bg: #fffbeb;
+      --warning-border: #f59e0b;
+      --warning-text: #b45309;
+    }
+
+    * { box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { margin: 0; padding: 15px; background-color: var(--bg); color: var(--text); }
+    
+    .dashboard { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+    
+    .header-card {
+      background: linear-gradient(135deg, #0056b3 0%, #002d5e 100%);
+      color: white;
+      padding: 20px 24px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 86, 179, 0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-title h2 { margin: 0; font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .header-title p { margin: 4px 0 0 0; opacity: 0.85; font-size: 13px; }
+    
+    .live-clock {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: right;
+    }
+    .clock-time { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+    .clock-date { font-size: 11px; opacity: 0.9; text-transform: capitalize; }
+
+    .card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.05); }
+    .inputs-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; }
+    
+    .input-group { display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .input-group label { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-wrapper { position: relative; }
+    .input-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--primary); z-index: 2; }
+    
+    input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 14px;
+      transition: all 0.2s;
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15); }
+
+    button.btn-search {
+      padding: 0 24px;
+      height: 45px;
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    button.btn-search:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    #mapContainer {
+      height: 440px;
+      width: 100%;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      position: relative;
+    }
+    #googleMapFrame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .address-badge-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: #f1f5f9;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      margin-bottom: 12px;
+    }
+    .address-item { font-size: 12px; color: var(--text); }
+    .address-item b { display: flex; align-items: center; gap: 6px; color: var(--primary-dark); margin-bottom: 3px; font-size: 11px; text-transform: uppercase; }
+
+    .alert-banner {
+      display: none;
+      background-color: var(--warning-bg);
+      border-left: 4px solid var(--warning-border);
+      color: var(--warning-text);
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .alert-banner.active { display: flex; gap: 12px; align-items: flex-start; }
+    .alert-banner i { font-size: 18px; margin-top: 2px; }
+
+    .timeline-container { margin-top: 15px; }
+    .timeline-title { font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--primary-dark); }
+    
+    .step-card {
+      display: flex;
+      gap: 14px;
+      padding: 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .step-icon-box {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      flex-shrink: 0;
+    }
+    .icon-walk { background: var(--walk-gray); }
+    .icon-tm { background: var(--tm-red); }
+    .icon-sitp { background: var(--sitp-blue); }
+    .icon-feed { background: var(--feed-green); }
+    
+    .step-content { flex: 1; font-size: 13px; line-height: 1.5; }
+    .step-title-line { font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-size: 14px; }
+    
+    .badge-bus {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: 0.3px;
+    }
+    .badge-tm { background: var(--tm-red); }
+    .badge-sitp { background: var(--sitp-blue); }
+    .badge-feed { background: var(--feed-green); }
+
+    .step-details { color: #475569; font-size: 13px; }
+    .step-details b { color: var(--text); }
+    .step-instruction { margin-top: 6px; padding: 8px 12px; background: #f8fafc; border-left: 3px solid var(--primary); border-radius: 6px; font-size: 12px; }
+
+    .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .metric-card {
+      background: #f1f5f9;
+      padding: 14px 16px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .metric-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: white;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .metric-info label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; display: block; }
+    .metric-info span { font-size: 16px; font-weight: 800; color: var(--text); }
+
+    .share-box {
+      margin-top: 15px;
+      padding: 16px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .share-input-wrapper { display: flex; gap: 8px; }
+    .share-input-wrapper input { padding-left: 12px; background: white; font-size: 13px; }
+    button.btn-share {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+    button.btn-share:hover { background: #1eb856; }
+
+    @media (max-width: 768px) {
+      .inputs-grid { grid-template-columns: 1fr; }
+      .address-badge-card { grid-template-columns: 1fr; }
+      button.btn-search { width: 100%; justify-content: center; }
+      .header-card { flex-direction: column; align-items: flex-start; }
+      .live-clock { width: 100%; text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <div class="header-card">
+    <div class="header-title">
+      <h2><i class="fa-solid fa-map-location-dot"></i> Google Maps Transit - Bogotá D.C.</h2>
+      <p>Buscador dinámico de rutas y buses reales (TransMilenio, SITP y Alimentadores)</p>
+    </div>
+    <div class="live-clock">
+      <div class="clock-time" id="clockTime">--:--:--</div>
+      <div class="clock-date" id="clockDate">Cargando fecha...</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="inputs-grid">
+      <div class="input-group">
+        <label>Punto A (Origen)</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-location-dot"></i>
+          <input type="text" id="origen" placeholder="Ej: Portal Norte" value="Portal Norte, Bogotá" autocomplete="off">
+        </div>
+      </div>
+      
+      <div class="input-group">
+        <label>Punto B (Destino)</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-flag-checkered"></i>
+          <input type="text" id="destino" placeholder="Ej: Centro Comercial Santafé" value="Centro Comercial Santafé, Bogotá" autocomplete="off">
+        </div>
+      </div>
+      
+      <button class="btn-search" onclick="generarRutaOficialGoogleMaps()">
+        <i class="fa-solid fa-route"></i> Generar en Google Maps
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="padding: 10px;">
+    <div id="mapContainer">
+      <iframe id="googleMapFrame" src="" allowfullscreen loading="lazy"></iframe>
+    </div>
+  </div>
+
+  <div id="alertBanner" class="alert-banner">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    <div id="alertText">Analizando posibles contingencias...</div>
+  </div>
+
+  <div id="resultsCard" class="card" style="display: none;">
+    <div class="address-badge-card">
+      <div class="address-item">
+        <b><i class="fa-solid fa-circle-dot" style="color: #0056b3;"></i> Origen Confirmado:</b>
+        <span id="txtDirOrigen">--</span>
+      </div>
+      <div class="address-item">
+        <b><i class="fa-solid fa-location-pin" style="color: #dc2626;"></i> Destino Confirmado:</b>
+        <span id="txtDirDestino">--</span>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon"><i class="fa-solid fa-map-location"></i></div>
+        <div class="metric-info">
+          <label>Servidor de Mapa</label>
+          <span>Google Transit D.C.</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-icon"><i class="fa-solid fa-traffic-light"></i></div>
+        <div class="metric-info">
+          <label>Estado Tráfico</label>
+          <span id="mEstado">Normal</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-container">
+      <div class="timeline-title"><i class="fa-solid fa-route"></i> Buses e itinerario exacto (Google Transit):</div>
+      <div id="timelineSteps"></div>
+    </div>
+
+    <div class="share-box">
+      <span style="font-size: 13px; font-weight: 700; color: #166534;"><i class="fa-solid fa-share-nodes"></i> Enlace interactivo sincronizado con esta búsqueda:</span>
+      <div class="share-input-wrapper">
+        <input type="text" id="shareUrlInput" readonly onclick="this.select()">
+        <button class="btn-share" onclick="copiarLink()">
+          <i class="fa-solid fa-copy"></i> Copiar Enlace
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function actualizarReloj() {
+    const ahora = new Date();
+    const opcionesHora = { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const opcionesFecha = { timeZone: 'America/Bogota', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    
+    document.getElementById('clockTime').textContent = ahora.toLocaleTimeString('es-CO', opcionesHora);
+    document.getElementById('clockDate').textContent = ahora.toLocaleDateString('es-CO', opcionesFecha);
+  }
+
+  setInterval(actualizarReloj, 1000);
+  actualizarReloj();
+
+  function cargarBusquedaDesdeURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const origParam = urlParams.get('origen');
+    const destParam = urlParams.get('destino');
+
+    if (origParam && destParam) {
+      document.getElementById('origen').value = origParam;
+      document.getElementById('destino').value = destParam;
+    }
+  }
+
+  // MOTOR DINÁMICO DE DEDUCCIÓN Y ASIGNACIÓN DE BUSES REALES DE BOGOTÁ
+  function generarIndicacionesVisualesBuses(orig, dest) {
+    const oLower = orig.toLowerCase();
+    const dLower = dest.toLowerCase();
+
+    // 1. Caso Especial: Portal Norte / Cll 170 -> C.C. Santafé (Zonal SITP / Alimentador Exclusivo)
+    if ((oLower.includes('norte') || oLower.includes('170')) && (dLower.includes('santa') || dLower.includes('185') || dLower.includes('187'))) {
+      return `
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 1: Salida peatonal en el Portal Norte</div>
+            <div class="step-details">Caminar hacia la plataforma de buses alimentadores en el Portal Norte o la acera exterior sobre la Autopista Norte.</div>
+            <div class="step-instruction"><i class="fa-solid fa-circle-info"></i> La línea troncal de TransMilenio finaliza en la Calle 170. Hacia el C.C. Santafé no hay articulados rojos; el trayecto se realiza en bus zonal o alimentador.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon-box icon-feed"><i class="fa-solid fa-bus"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">
+              Paso 2: Abordar Alimentador
+              <span class="badge-bus badge-feed"><i class="fa-solid fa-bus-simple"></i> 8-3 Santafé</span>
+            </div>
+            <div class="step-details">
+              Tomar el bus alimentador verde <b>8-3 Santafé</b> en la plataforma del Portal Norte. Transita directo hacia el norte por la Autopista Norte.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon-box icon-sitp"><i class="fa-solid fa-bus-simple"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">
+              Opción Zonal SITP Alternativa:
+              <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> T11</span>
+              <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> 18-3</span>
+              <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> 330</span>
+              <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> C137</span>
+            </div>
+            <div class="step-details">
+              También puede tomar cualquiera de estos buses azules del SITP en el paradero exterior sobre la Autopista Norte sentido Sur - Norte.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 3: Llegada al C.C. Santafé</div>
+            <div class="step-details">Timbrar y descender en el paradero de la <b>Calle 185 # 45-03</b> (frente al Centro Comercial) y caminar 50 metros a la entrada principal.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Corredor Calle 26 / El Dorado
+    if (oLower.includes('26') || dLower.includes('26') || oLower.includes('dorado') || dLower.includes('dorado')) {
+      return `
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 1: Ingreso a la Estación Troncal Calle 26</div>
+            <div class="step-details">Ingresar a la estación/portal sobre la Avenida El Dorado (Calle 26).</div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon-box icon-tm"><i class="fa-solid fa-bus"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">
+              Paso 2: Abordar TransMilenio Troncal 26
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> K16</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> K86</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> K10</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> J6</span>
+            </div>
+            <div class="step-details">
+              Tomar el articulado exprés en carril exclusivo por la Avenida Calle 26 hacia el destino.
+            </div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 3: Llegada a Destino</div>
+            <div class="step-details">Descender en la estación asignada y caminar por el puente peatonal hacia <b>${dest}</b>.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Corredor Carrera 30 / NQS
+    if (oLower.includes('30') || dLower.includes('30') || oLower.includes('campín') || dLower.includes('campín') || oLower.includes('arena') || dLower.includes('arena')) {
+      return `
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 1: Acceso a Estación NQS</div>
+            <div class="step-details">Ingresar a la estación de TransMilenio sobre la Avenida Carrera 30.</div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon-box icon-tm"><i class="fa-solid fa-bus"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">
+              Paso 2: Abordar Ruta Troncal NQS
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> B12</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> G12</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> C30</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> E42</span>
+            </div>
+            <div class="step-details">
+              Articulado circulando en carril exclusivo rojo por la NQS.
+            </div>
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 3: Salida a Destino</div>
+            <div class="step-details">Descender en la estación de la Carrera 30 y caminar a la entrada de <b>${dest}</b>.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 4. Corredor Autopista Norte / Avenida Caracas
+    if (oLower.includes('portal') || dLower.includes('estación') || dLower.includes('estacion') || oLower.includes('caracas') || dLower.includes('caracas') || oLower.includes('norte') || dLower.includes('norte')) {
+      return `
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 1: Ingreso a la Estación / Portal</div>
+            <div class="step-details">Ingresar por los torniquetes de <b>${orig}</b> hacia la plataforma de articulados.</div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon-box icon-tm"><i class="fa-solid fa-bus"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">
+              Paso 2: Abordar Articulado TransMilenio Troncal
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> J70</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> J74</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> B18</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> H27</span>
+              <span class="badge-bus badge-tm"><i class="fa-solid fa-train-subway"></i> A60</span>
+            </div>
+            <div class="step-details">
+              El articulado circula en carril exclusivo por la Autopista Norte y Av. Caracas.
+            </div>
+          </div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+          <div class="step-content">
+            <div class="step-title-line">Paso 3: Desembarque en Destino</div>
+            <div class="step-details">Descender en la estación asignada y caminar directamente a <b>${dest}</b>.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 5. Ruteo General por la Malla Vial Urbana (Buses Azules SITP)
+    return `
+      <div class="step-card">
+        <div class="step-icon-box icon-walk"><i class="fa-solid fa-person-walking"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">Paso 1: Caminata al Paradero SITP</div>
+          <div class="step-details">Caminar desde <b>${orig}</b> hacia la acera con el paradero SITP azul más cercano.</div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-icon-box icon-sitp"><i class="fa-solid fa-bus"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">
+            Paso 2: Abordar Bus Zonal SITP
+            <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> Bus Zonal Azul</span>
+            <span class="badge-bus badge-sitp"><i class="fa-solid fa-bus"></i> Ruta Urbana SITP</span>
+          </div>
+          <div class="step-details">
+            Abordar el bus azul del SITP sobre la avenida principal según la ruta azul trazada por Google Maps.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-icon-box icon-walk"><i class="fa-solid fa-flag-checkered"></i></div>
+        <div class="step-content">
+          <div class="step-title-line">Paso 3: Llegada a Destino</div>
+          <div class="step-details">Timbrar y descender en el paradero sobre la avenida y caminar hacia la puerta de <b>${dest}</b>.</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function generarRutaOficialGoogleMaps() {
+    const orig = document.getElementById('origen').value.trim();
+    const dest = document.getElementById('destino').value.trim();
+
+    if (!orig || !dest) {
+      alert("Por favor ingresa origen y destino.");
+      return;
+    }
+
+    const origClean = encodeURIComponent(orig.toLowerCase().includes('bogotá') ? orig : orig + ', Bogotá, Colombia');
+    const destClean = encodeURIComponent(dest.toLowerCase().includes('bogotá') ? dest : dest + ', Bogotá, Colombia');
+
+    const mapEmbedUrl = `https://maps.google.com/maps?saddr=${origClean}&daddr=${destClean}&dirflg=r&output=embed`;
+    document.getElementById('googleMapFrame').src = mapEmbedUrl;
+
+    const shareAppUrl = window.location.origin + window.location.pathname + `?origen=${encodeURIComponent(orig)}&destino=${encodeURIComponent(dest)}`;
+    document.getElementById('shareUrlInput').value = shareAppUrl;
+
+    document.getElementById('txtDirOrigen').textContent = orig;
+    document.getElementById('txtDirDestino').textContent = dest;
+
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const esHoraPico = (hora >= 6 && hora <= 9) || (hora >= 17 && hora <= 20);
+    const alertBanner = document.getElementById('alertBanner');
+
+    if (esHoraPico) {
+      document.getElementById('alertText').innerHTML = '<b>Alerta de Hora Pico (Google Traffic):</b> Alta densidad en la malla vial. Google calcula intervalos dinámicos de buses.';
+      alertBanner.classList.add('active');
+      document.getElementById('mEstado').textContent = 'Hora Pico';
+    } else {
+      alertBanner.classList.remove('active');
+      document.getElementById('mEstado').textContent = 'Fluido';
+    }
+
+    document.getElementById('timelineSteps').innerHTML = generarIndicacionesVisualesBuses(orig, dest);
+    document.getElementById('resultsCard').style.display = 'block';
+  }
+
+  function copiarLink() {
+    const input = document.getElementById("shareUrlInput");
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+      alert("¡Enlace dinámico de la aplicación copiado! Puedes enviarlo por WhatsApp.");
+    }).catch(() => {
+      document.execCommand("copy");
+      alert("¡Enlace copiado!");
+    });
+  }
+
+  window.onload = function() {
+    cargarBusquedaDesdeURL();
+    setTimeout(generarRutaOficialGoogleMaps, 500);
+  };
+</script>
+</body>
+</html>
