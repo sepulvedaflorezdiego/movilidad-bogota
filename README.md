@@ -1,2 +1,0 @@
-# movilidad-bogota
-aplicacion academica
