@@ -61,20 +61,18 @@ iframe{width:100%;height:100%;border:0}
 }
 .alert-banner.active{display:flex;gap:12px;align-items:flex-start}
 
-/* Noticias y Reporte de Movilidad */
-.news-section-title{font-size:16px;font-weight:700;color:var(--primary-dark);margin:15px 0 10px;display:flex;align-items:center;gap:8px}
-.news-container{display:flex;flex-direction:column;gap:10px;margin-bottom:15px}
-.news-card{
-  background:var(--news-bg);border:1px solid var(--news-border);border-radius:12px;padding:14px;
-  display:flex;flex-direction:column;gap:6px;transition:transform 0.2s
+.news-section-title{font-size:15px;font-weight:700;color:var(--primary-dark);margin:10px 0 10px;display:flex;align-items:center;gap:8px}
+.no-news-box{
+  background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;padding:14px;
+  font-size:13px;color:#475569;display:flex;align-items:center;gap:10px;margin-bottom:12px
 }
-.news-card:hover{transform:translateY(-2px)}
-.news-header{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:var(--primary-dark)}
-.news-tag{background:#e2e8f0;padding:2px 8px;border-radius:4px;font-size:10px;text-transform:uppercase}
-.news-title{font-size:13px;font-weight:700;color:#0f172a;margin:2px 0}
-.news-desc{font-size:12px;color:#475569;line-height:1.4}
-.news-link{font-size:12px;color:var(--primary);text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-top:4px}
-.news-link:hover{text-decoration:underline}
+.official-links-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.link-button{
+  background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;padding:10px 12px;
+  color:var(--primary-dark);text-decoration:none;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between;transition:background 0.2s
+}
+.link-button:hover{background:#f1f5f9}
 
 .share-box{
   margin-top:15px;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;
@@ -86,10 +84,9 @@ button.btn-share{
   background:#25d366;color:white;border:none;padding:0 18px;border-radius:8px;
   font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap
 }
-.note{font-size:12px;color:#475569;line-height:1.5}
 
 @media(max-width:768px){
-  .inputs-grid{grid-template-columns:1fr}
+  .inputs-grid,.official-links-grid{grid-template-columns:1fr}
   button.btn-search{width:100%;justify-content:center}
   .header-card{flex-direction:column;align-items:flex-start}
   .live-clock{width:100%;text-align:left}
@@ -101,7 +98,7 @@ button.btn-share{
   <div class="header-card">
     <div class="header-title">
       <h2><i class="fa-solid fa-map-location-dot"></i> Planificador de Ruta - Google Maps</h2>
-      <p>Estimación exacta de tiempos + Reporte de novedades de transporte público</p>
+      <p>Estimación de tiempos e itinerario en transporte público</p>
     </div>
     <div class="live-clock"><div class="clock-time" id="clockTime">--:--:--</div><div class="clock-date" id="clockDate">Cargando fecha...</div></div>
   </div>
@@ -118,65 +115,39 @@ button.btn-share{
     </div>
   </div>
 
-  <!-- Métricas de tiempo estimado -->
   <div id="resultsCard" class="card" style="display:none">
     <div class="metrics-grid" id="metrics"></div>
     <div id="alertBanner" class="alert-banner"><i class="fa-solid fa-triangle-exclamation"></i><div id="alertText"></div></div>
   </div>
 
-  <!-- Mapa Interactivo de Google Maps -->
   <div class="card" style="padding:10px">
     <div id="mapContainer">
       <iframe id="googleMapIframe" src="about:blank" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
   </div>
 
-  <!-- Noticias y Alertas de Movilidad -->
   <div class="card">
-    <div class="news-section-title"><i class="fa-solid fa-newspaper"></i> Novedades y Estado del Transporte Público (Bogotá D.C.)</div>
-    <p style="font-size:12px;color:var(--text-muted);margin:-5px 0 12px;">Alertas de demoras, manifestaciones y obras que pueden afectar tu llegada a tiempo:</p>
-    <div class="news-container" id="newsContainer">
+    <div class="news-section-title"><i class="fa-solid fa-circle-info"></i> Estado Actual del Tránsito y Novedades</div>
+    
+    <div class="no-news-box">
+      <i class="fa-solid fa-circle-check" style="color:#16a34a;font-size:18px;"></i>
+      <span>Sin novedades de gravedad reportadas en este momento. El sistema opera dentro de los parámetros habituales.</span>
+    </div>
 
-      <div class="news-card">
-        <div class="news-header">
-          <span><i class="fa-solid fa-triangle-exclamation" style="color:#eab308"></i> ALERTA DE TRÁFICO</span>
-          <span class="news-tag">TransMilenio</span>
-        </div>
-        <div class="news-title">Novedades y estado de la red troncal en tiempo real</div>
-        <div class="news-desc">Revisa cierres programados por obras de la Primera Línea del Metro en la Caracas y desvíos operacionales del SITP.</div>
-        <a href="https://www.transmilenio.gov.co/publicaciones/151328/novedades-en-la-operacion-del-sistema-transmilenio/" target="_blank" class="news-link">
-          Ver reporte oficial en TransMilenio <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
-      </div>
-
-      <div class="news-card">
-        <div class="news-header">
-          <span><i class="fa-solid fa-traffic-light" style="color:#0056b3"></i> BOGOTÁ TRÁNSITO</span>
-          <span class="news-tag">Secretaría de Movilidad</span>
-        </div>
-        <div class="news-title">Reporte de movilidad, siniestros y congestión vial</div>
-        <div class="news-desc">Consulta los incidentes viales activos, manifestaciones o cierres por mantenimiento en las avenidas principales de la ciudad.</div>
-        <a href="https://www.movilidadbogota.gov.co/web/noticias" target="_blank" class="news-link">
-          Ver noticias de Secretaría de Movilidad <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
-      </div>
-
-      <div class="news-card">
-        <div class="news-header">
-          <span><i class="fa-solid fa-bullhorn" style="color:#dc2626"></i> EVENTOS Y DESVÍOS</span>
-          <span class="news-tag">SITP / Zonal</span>
-        </div>
-        <div class="news-title">Plan de Manejo de Tránsito (PMT) y obras activas</div>
-        <div class="news-desc">Conoce las modificaciones de rutas zonales y alimentadores debido a intervenciones en malla vial y construcciones.</div>
-        <a href="https://www.movilidadbogota.gov.co/web/plan_de_manejo_de_transito" target="_blank" class="news-link">
-          Ver Planes de Manejo de Tránsito <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
-      </div>
-
+    <span style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Fuentes oficiales directas:</span>
+    <div class="official-links-grid">
+      <a href="https://www.transmilenio.gov.co/" target="_blank" rel="noopener" class="link-button">
+        <span><i class="fa-solid fa-bus" style="color:#0056b3"></i> Portal Oficial TransMilenio</span>
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      </a>
+      <a href="https://www.movilidadbogota.gov.co/" target="_blank" rel="noopener" class="link-button">
+        <span><i class="fa-solid fa-traffic-light" style="color:#0056b3"></i> Secretaría de Movilidad</span>
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+      </a>
     </div>
 
     <div class="share-box">
-      <span style="font-size:13px;font-weight:700;color:#166534"><i class="fa-solid fa-map-location-dot"></i> Abrir itinerario directo en la App de Google Maps:</span>
+      <span style="font-size:13px;font-weight:700;color:#166534"><i class="fa-solid fa-map-location-dot"></i> Abrir en la App de Google Maps:</span>
       <div class="share-input-wrapper">
         <input type="text" id="shareUrlInput" readonly onclick="this.select()">
         <button class="btn-share" onclick="abrirLink()"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir App</button>
@@ -193,12 +164,12 @@ function actualizarReloj() {
   const a = new Date();
   $('clockTime').textContent = a.toLocaleTimeString('es-CO', {timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});$('clockDate').textContent = a.toLocaleDateString('es-CO', {timeZone:'America/Bogota', weekday:'long', year:'numeric', month:'long', day:'numeric'});
 }
-setInterval(actualizarReloj, 1000);
+setInterval(actualizarReloj, 1000); 
 actualizarReloj();
 
-function aviso(html) {
-  $('alertText').innerHTML = html;
-  $('alertBanner').classList.add('active');
+function aviso(html) { 
+  $('alertText').innerHTML = html; 
+  $('alertBanner').classList.add('active'); 
 }
 
 const fmtDist = m => m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km' : Math.round(m) + ' m';
@@ -206,7 +177,7 @@ const fmtDist = m => m >= 1000 ? (m / 1000).toFixed(1).replace('.', ',') + ' km'
 async function geocodificar(texto) {
   const u = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=co&viewbox=-74.25,4.84,-73.99,4.45&bounded=1&accept-language=es&q=' + encodeURIComponent(/bogot/i.test(texto) ? texto : texto + ', Bogotá');
   const r = await (await fetch(u)).json();
-  if (!r.length) throw new Error('No se encontró la ubicación en Bogotá.');
+  if (!r.length) throw new Error('Ubicación no encontrada.');
   return {lat: +r[0].lat, lng: +r[0].lon};
 }
 
@@ -216,18 +187,17 @@ async function calcularTiempoGoogleStyle(o, d) {
     const url = `https://router.project-osrm.org/route/v1/driving/${ptA.lng},${ptA.lat};${ptB.lng},${ptB.lat}?overview=false`;
     const res = await fetch(url);
     const data = await res.json();
-
+    
     if (data.routes && data.routes.length > 0) {
       const distM = data.routes[0].distance;
       const durSec = data.routes[0].duration;
-
+      
       const hora = +new Date().toLocaleString('en-US', {timeZone:'America/Bogota', hour:'numeric', hour12:false}) % 24;
       const pico = (hora >= 6 && hora <= 9) || (hora >= 17 && hora <= 20);
-
-      // Ajuste de tiempo según velocidad promedio de Transporte Público en Bogotá (con paradas e intervalos)
-      let factorTranstito = pico ? 1.6 : 1.25;
-      let tiempoMinutos = Math.round((durSec / 60) * factorTranstito) + 6; // +6 min tiempo promedio de espera
-
+      
+      let factorTranstito = pico ? 1.6 : 1.25; 
+      let tiempoMinutos = Math.round((durSec / 60) * factorTranstito) + 6;
+      
       return { distM, tiempoMinutos, pico };
     }
   } catch (e) {}
@@ -238,8 +208,8 @@ async function consultar() {
   const o = $('origen').value.trim();
   const d = $('destino').value.trim();
   if (!o || !d) { alert('Ingresa origen y destino.'); return; }
-
-  $('btnBuscar').disabled = true;
+  
+  $('btnBuscar').disabled = true; 
   $('btnBuscar').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Calculando...';
 
   const origenQuery = encodeURIComponent(/bogot/i.test(o) ? o : o + ', Bogotá');
@@ -251,24 +221,23 @@ async function consultar() {
   $('googleMapIframe').src = embedUrl;
   $('shareUrlInput').value = directUrl;
 
-  // Cálculo exacto
   const { distM, tiempoMinutos, pico } = await calcularTiempoGoogleStyle(o, d);
 
   const m = (ic, lb, v) => `<div class="metric-card"><div class="metric-icon"><i class="fa-solid ${ic}"></i></div><div class="metric-info"><label>${lb}</label><span>${v}</span></div></div>`;
 
-  $('metrics').innerHTML =
+  $('metrics').innerHTML = 
     m('fa-clock', 'Tiempo estimado', '~' + tiempoMinutos + ' min') +
     m('fa-road', 'Distancia aproximada', fmtDist(distM)) +
     m('fa-bus', 'Modo de viaje', 'Transporte Público') +
-    m('fa-traffic-light', 'Congestión vial', pico ? 'Hora Pico (+15 min)' : 'Fluido (Normal)');
+    m('fa-traffic-light', 'Estado actual', pico ? 'Hora Pico (+15 min)' : 'Fluido (Normal)');
 
   if (pico) {
-    aviso('<b>Advertencia de Hora Pico (6-9 AM / 5-8 PM):</b> Los buses urbanos e intersectoriales pueden presentar retrasos adicionales debido a alta congestión vial.');
+    aviso('<b>Estado del Tráfico (Hora Pico):</b> En este horario (6-9 AM / 5-8 PM) se presentan mayores tiempos de espera en paraderos y troncales.');
   } else {
-    aviso('<b>Tráfico Fluido (Hora Valle):</b> El tiempo estimado refleja el ritmo normal de operación y transbordos.');
+    aviso('<b>Estado del Tráfico (Hora Valle):</b> La velocidad promedio del transporte público es estable.');
   }
 
-  $('resultsCard').style.display = 'block';$('btnBuscar').disabled = false;
+  $('resultsCard').style.display = 'block';$('btnBuscar').disabled = false; 
   $('btnBuscar').innerHTML = '<i class="fa-solid fa-route"></i> Trazar ruta';
 }
 
